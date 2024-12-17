@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Car Rental Dashboard</title>
+  <style>body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    display: flex;
+  }
+  
+  .dashboard {
+    display: flex;
+    width: 100%;
+  }
+  
+  .sidebar {
+    background-color: #a51118;
+    color: #fff;
+    width: 250px;
+    height: 100vh;
+    padding: 20px;
+  }
+  
+  .sidebar h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  
+  .sidebar nav ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .sidebar nav ul li {
+    margin: 10px 0;
+  }
+  
+  .sidebar nav ul li a {
+    text-decoration: none;
+    color: #fff;
+    font-size: 16px;
+  }
+  
+  .main-content {
+    flex: 1;
+    padding: 20px;
+  }
+  
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .stat-card {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .stat-card h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .stat-card p {
+    font-size: 24px;
+    color: #007bff;
+  }
+  
+  .charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  
+  .chart-container {
+  background-color: #fff;
+  width: 80%;
+    max-width: 600px;
+    height: 400px;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.large-chart {
+  grid-column: span 2;
+}
+
+.small-chart h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.small-chart select, .small-chart input, .small-chart button {
+  margin: 5px 0;
+  display: block;
+  width: 100%;
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.small-chart button {
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+}
+
+.small-chart button:hover {
+  background-color: #0056b3;
+}
+
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2>AraçSys</h2>
+      <nav>
+        <ul>
+          <li><a href="#">Anasayfa</a></li>
+          <li><a href="#">kazanç</a></li>
+          <li><a href="#">Araç Listesi</a></li>
+          <li><a href="#">Rezervasyon</a></li>
+          <li><a href="#">Takvim</a></li>
+          <li><a href="#">Bakim</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header>
+        <h1>Dashboard</h1>
+        <div class="user-profile">
+          <span>Admin</span>
+          <img src="https://via.placeholder.com/40" alt="User Avatar">
+        </div>
+      </header>
+
+      <!-- Stats Section -->
+      <section class="stats">
+        <div class="stat-card">
+          <h3>Toplam Gelir</h3>
+          <p id="ToplamGelir">$0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Rezervasyonlar</h3>
+          <p id="ToplamRezervasyonlar">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Kiralandi Arabalar</h3>
+          <p id="KiralandiArabalar">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Mevcut Arabalar</h3>
+          <p id="MevcutArabalar">0</p>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section class="charts">
+        <div class="chart-container">
+            <h3>Kazanç Özeti</h3>
+          <canvas id="earningsChart"></canvas>
+        </div>
+        <!-- Car Availability Chart -->
+        <div class="chart-container small-chart">
+            <h3>Araç Mevcutluğu</h3>
+            <select id="car-number">
+              <option value="1">Corolla</option>
+              <option value="2">Clio</option>
+              <option value="3">Focus</option>
+            </select>
+            <input type="text" id="availability-date" placeholder="DD/MM/YY">
+            <input type="time" id="availability-time">
+            <button id="check-availability">Check</button>
+            <canvas id="availabilityChart"></canvas>
+          </div>
+        
+        
+        <!-- Car Type Chart -->
+<div class="chart-container small-chart">
+  <h3>Répartition des Voitures par Type</h3>
+  <!-- Conteneur pour le graphique -->
+  <canvas id="carTypeChart"></canvas>
+
+  <!-- Conteneur pour les erreurs -->
+  <div id="errorContainer" class="error-message"></div>
+
+  <!-- Loader (optionnel) -->
+  <div id="loadingContainer" class="loading-message" style="display: none;">
+    Chargement en cours...
+  </div>
+</div>
+
+
+  <!-- Booking Status Chart -->
+  <div class="chart-container small-chart">
+    <h3>Statut des Réservations</h3>
+    <canvas id="bookingStatusChart"></canvas>
+    <div id="loading-message" style="display: none;">Chargement en cours...</div>
+    <div id="error-message" style="display: none; color: red;">Erreur lors du chargement des données.</div>
+  </div>
+      </section>
+    </main>
+  </div>
+  <script src="/public/js"></script>
+  <script>// Charger les données du tableau de bord depuis l'API
+    async function fetchDashboardData() {
+    try {
+        const response = await fetch("http://localhost:9000/api/dashboard-data");
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data && typeof data === "object") {
+            document.getElementById("ToplamGelir").textContent = `$${data.ToplamGelir || "0"}`;
+            document.getElementById("ToplamRezervasyonlar").textContent = data.ToplamRezervasyonlar || "0";
+            document.getElementById("KiralandiArabalar").textContent = data.KiralandiArabalar || "0";
+            document.getElementById("MevcutArabalar").textContent = data.MevcutArabalar || "0";
+        } else {
+            console.error("Données inattendues :", data);
+        }
+    } catch (error) {
+        console.error("Erreur lors du chargement des données :", error);
+    }
+}
+
+    
+    // Charger les données pour les graphiques
+    async function fetchGraphData() {
+  try {
+    const response = await fetch("http://localhost:9000/api/graph-data");
+
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP : ${response.status}`);
+    }
+
+    const graphData = await response.json();
+
+    const labels = graphData.map(item => `Ay ${item.month}`);
+    const gelir = graphData.map(item => item.gelir); // Assurez-vous que 'gelir' correspond à l'API
+
+    // Graphique des revenus
+    const earningsChart = document.getElementById("earningsChart").getContext("2d");
+    new Chart(earningsChart, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Aylik Geliri",
+            data: gelir, // Variable correcte
+            borderColor: "#FF6384",
+            backgroundColor: "rgba(255, 99, 132, 0.2)",
+            borderWidth: 2,
+            tension: 0.4, // Lissage des lignes
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "top",
+          },
+          title: {
+            display: true,
+            text: "Aylik Geliri",
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Erreur lors du chargement des graphiques :", error);
+  }
+}
+
+// Charger les données pour le graphique
+fetchGraphData();
+
+
+    // Car Availability Chart
+      // Fonction pour convertir le format DD/MM/YY en YYYY-MM-DD
+  function formatDateForMySQL(date) {
+    const [day, month, year] = date.split('/');
+    return `20${year}-${month}-${day}`; // Ajoute "20" pour compléter l'année
+  }
+
+  // Gestionnaire d'événement pour le bouton
+  document.getElementById("check-availability").addEventListener("click", async function() {
+    const carId = document.getElementById("car-number").value;
+    const rawDate = document.getElementById("availability-date").value;
+    const time = document.getElementById("availability-time").value;
+
+    const formattedDate = formatDateForMySQL(rawDate);
+    const fullDateTime = `${formattedDate} ${time}:00`; // YYYY-MM-DD HH:mm:ss
+
+    // Construire l'URL avec les paramètres formatés
+    const url = `http://localhost:9000/api/car-availability?carId=${carId}&startDate=${formattedDate}&time=${time}`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      updateChart(data); // Met à jour le graphique
+    } catch (err) {
+      console.error("Erreur lors de la récupération des données :", err);
+    }
+  });
+
+  // Fonction pour mettre à jour le graphique
+  function updateChart(data) {
+  const availabilityChart = document.getElementById("availabilityChart").getContext("2d");
+  const labels = data.map(item => new Date(item.date).toLocaleDateString('fr-FR')); // Format date
+  const dataset = data.map(item => item.availableCars);
+
+  new Chart(availabilityChart, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Disponibilité des voitures",
+        data: dataset,
+        borderColor: "#36A2EB",
+        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        borderWidth: 2,
+      }],
+    },
+  });
+}
+console.log('Requête API - carId:', carId, 'startDate:', startDate, 'endDate:', endDate);
+
+// Car Type Chart
+async function fetchCarTypeData() {
+  try {
+    const response = await fetch("http://localhost:9000/api/car-type-data");
+    if (!response.ok) {
+      throw new Error("Erreur réseau lors du chargement des données.");
+    }
+
+    const carTypeData = await response.json();
+
+    // Vérification des données reçues
+    if (!Array.isArray(carTypeData) || !carTypeData.every(data => data.type && data.count)) {
+      throw new Error("Données invalides reçues du serveur.");
+    }
+
+    const carTypeChart = document.getElementById("carTypeChart").getContext("2d");
+
+    // Générer des couleurs dynamiques
+    const generateColors = (length) => Array.from({ length }, () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`);
+    const backgroundColors = generateColors(carTypeData.length);
+
+    new Chart(carTypeChart, {
+      type: "bar",
+      data: {
+        labels: carTypeData.map(data => sanitizeText(data.type)), // Nettoyage des noms
+        datasets: [
+          {
+            label: "Nombre de Voitures par Type",
+            data: carTypeData.map(data => data.count),
+            backgroundColor: backgroundColors,
+            borderColor: "#ddd",
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Répartition des voitures par type',
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Erreur lors du chargement des données des types de voitures :", error);
+
+    // Affichage d'une erreur pour l'utilisateur
+    const errorContainer = document.getElementById("errorContainer");
+    if (errorContainer) {
+      errorContainer.textContent = "Une erreur est survenue lors du chargement des données.";
+    }
+  }
+}
+
+// Nettoyage des chaînes
+const sanitizeText = (text) => text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Appel de la fonction une fois le DOM chargé
+document.addEventListener("DOMContentLoaded", fetchCarTypeData);
+
+
+// Booking Status Chart
+async function fetchBookingStatusData() {
+  try {
+    document.getElementById("loading-message").style.display = "block";
+    
+    const response = await fetch("http://localhost:9000/api/booking-status");
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    
+    const bookingStatusData = await response.json();
+    document.getElementById("loading-message").style.display = "none";
+
+    // Validation des données
+    if (!Array.isArray(bookingStatusData) || bookingStatusData.some(data => !data.durum || !data.count)) {
+      throw new Error("Données invalides reçues du serveur.");
+    }
+
+    const bookingStatusChart = document.getElementById("bookingStatusChart").getContext("2d");
+    const colors = generateRandomColors(bookingStatusData.length);
+
+    new Chart(bookingStatusChart, {
+      type: "doughnut",
+      data: {
+        labels: bookingStatusData.map(data => data.durum),
+        datasets: [
+          {
+            data: bookingStatusData.map(data => data.count),
+            backgroundColor: colors,
+            hoverOffset: 4,
+          },
+        ],
+      },
+    });
+  } catch (error) {
+    document.getElementById("loading-message").style.display = "none";
+    document.getElementById("error-message").style.display = "block";
+    console.error("Erreur lors du chargement des données du statut des réservations :", error);
+  }
+}
+
+// Générateur de couleurs aléatoires
+function generateRandomColors(count) {
+  return Array.from({ length: count }, () =>
+    `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`
+  );
+}
+
+// Appeler la fonction
+fetchBookingStatusData();
+
+
+
+    </script>
+</body>
+</html>

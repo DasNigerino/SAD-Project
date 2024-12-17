@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş ve Kayıt</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .form-container {
+            width: 300px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            text-align: center;
+        }
+        .form-container h1 {
+            margin-bottom: 20px;
+        }
+        .form-container form {
+            display: none;
+        }
+        .form-container form.active {
+            display: block;
+        }
+        .form-container input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .form-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .form-container button:hover {
+            background-color: #0056b3;
+        }
+        .toggle-btn {
+            margin-top: 10px;
+            background-color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1 id="form-title">Giriş</h1>
+        
+        <!-- Giriş Formu -->
+        <form id="login-form" class="active">
+            <input type="email" id="login-eposta" placeholder="Eposta" required>
+            <input type="password" id="login-sifre" placeholder="Şifre" required>
+            <button type="button" id="login-btn">Giriş</button>
+        </form>
+        
+        <!-- Kayıt Formu -->
+        <form id="register-form">
+            <input type="text" id="register-adi" placeholder="Adı" required>
+            <input type="text" id="register-soyadi" placeholder="Soyadı" required>
+            <input type="email" id="register-eposta" placeholder="Eposta" required>
+            <input type="password" id="register-sifre" placeholder="Şifre" required>
+            <button type="button" id="register-btn">Üye Ol</button>
+        </form>
+
+        <!-- Toggle Button -->
+        <button type="button" class="toggle-btn" id="toggle-form-btn">Kayıt Ol</button>
+    </div>
+
+    <script>
+        // Toggle between Login and Register forms
+        document.getElementById("toggle-form-btn").addEventListener("click", function() {
+            const loginForm = document.getElementById("login-form");
+            const registerForm = document.getElementById("register-form");
+            const formTitle = document.getElementById("form-title");
+            const toggleBtn = document.getElementById("toggle-form-btn");
+
+            if (loginForm.classList.contains("active")) {
+                loginForm.classList.remove("active");
+                registerForm.classList.add("active");
+                formTitle.textContent = "Kayıt Ol";
+                toggleBtn.textContent = "Giriş Yap";
+            } else {
+                registerForm.classList.remove("active");
+                loginForm.classList.add("active");
+                formTitle.textContent = "Giriş";
+                toggleBtn.textContent = "Kayıt Ol";
+            }
+        });
+
+        // Giriş işlemi
+        document.getElementById("login-btn").addEventListener("click", async () => {
+            const eposta = document.getElementById("login-eposta").value.trim();
+            const sifre = document.getElementById("login-sifre").value.trim();
+
+            if (!eposta || !sifre) {
+                alert("Lütfen tüm alanları doldurun.");
+                return;
+            }
+
+            const response = await fetch("http://localhost:3000/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ eposta, sifre }),
+            });
+
+            const result = await response.json();
+            if (response.status === 200) {
+                alert("Başarıyla giriş yapıldı!");
+                window.location.href = '/dashboard.html';
+
+            } else {
+                alert(result.message);
+            }
+        });
+
+        // Kayıt işlemi
+        document.getElementById("register-btn").addEventListener("click", async () => {
+            const adi = document.getElementById("register-adi").value.trim();
+            const soyadi = document.getElementById("register-soyadi").value.trim();
+            const eposta = document.getElementById("register-eposta").value.trim();
+            const sifre = document.getElementById("register-sifre").value.trim();
+
+            if (!adi || !soyadi || !eposta || !sifre) {
+                alert("Lütfen tüm alanları doldurun.");
+                return;
+            }
+
+            const response = await fetch("http://localhost:3000/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ adi, soyadi, eposta, sifre, rol: "kullanici" }),
+            });
+
+            const result = await response.json();
+            if (response.status === 201) {
+                alert("Başarıyla kayıt olundu! Giriş yapabilirsiniz.");
+                document.getElementById("toggle-form-btn").click();
+            } else {
+                alert(result.message);
+            }
+        });
+    </script>
+</body>
+</html>
