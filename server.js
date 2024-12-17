@@ -9,10 +9,9 @@ const cors = require('cors');
 const Joi = require('joi');
 
 const app = express();
+app.use(express.json()); 
 app.use(cors()); // Autorise toutes les origines (peut être personnalisé)
 app.use(bodyParser.json());
-app.use('/public', express.static(path.join(__dirname, 'public')));
-app.use(express.static('public'));
 app.use(express.static(path.join(__dirname,'public')));
 const port = process.env.PORT || 9000;
 const secretKey = process.env.SECRET_KEY || 'defaultSecretKey';
@@ -97,12 +96,13 @@ app.post('/login', async (req, res, next) => {
 app.get('/api/dashboard-data', (req, res) => {
     const query = `
       SELECT 
-        SUM(r.gelir) AS Toplam_Gelir,
-        COUNT(r.id) AS Toplam_Rezervasyonlar,
-        SUM(CASE WHEN a.durum = 'Kiralandi' THEN 1 ELSE 0 END) AS Kiralandi_Arabalar,
-        SUM(CASE WHEN a.durum = 'Mevcut' THEN 1 ELSE 0 END) AS Mevcut_Arabalar
-      FROM rezervasyonlari r
-      JOIN Araclar a ON r.id_araclar = a.id;
+    SUM(rezervasyonlari.gelir) AS Toplam_Gelir,
+    COUNT(rezervasyonlari.id) AS Rezervasyonlar,
+    SUM(CASE WHEN Araclar.durum = 'Kiralandi' THEN 1 ELSE 0 END) AS Kiralandi_Arabalar,
+    SUM(CASE WHEN Araclar.durum = 'Mevcut' THEN 1 ELSE 0 END) AS Mevcut_Arabalar
+FROM rezervasyonlari
+JOIN Araclar ON rezervasyonlari.id_araclar = Araclar.id;
+
     `;
   
     db.query(query, (err, results) => {
@@ -138,78 +138,87 @@ app.get('/api/dashboard-data', (req, res) => {
 
   // Endpoint pour les données de disponibilité des voitures
   app.get('/api/car-availability', (req, res) => {
-    const carId = req.query.carId;
-    const startDate = req.query.startDate;
-    const endDate = req.query.endDate;
+    const carId = req.query.carId;       // ID de la voiture
+    const startDate = req.query.startDate; // Date choisie
   
+    // Validation des paramètres
+    if (!carId || !startDate) {
+      return res.status(400).json({ error: "Paramètres manquants: carId et startDate requis." });
+    }
+  
+    // Requête SQL pour vérifier la disponibilité
     const query = `
-  SELECT DATE(r.rezervasyon_tarihi) AS date,
-         COUNT(CASE WHEN a.durum = 'Mevcut' THEN 1 ELSE NULL END) AS availableCars
-  FROM rezervasyonlari r
-  LEFT JOIN Araclar a ON r.id_araclar = a.id
-  WHERE a.id = ? AND r.rezervasyon_tarihi = ?
-  GROUP BY DATE(r.rezervasyon_tarihi)
-  ORDER BY DATE(r.rezervasyon_tarihi)
-`;
-    db.query(query, [carId, startDate, endDate], (err, results) => {
+      SELECT Araclar.id AS carId,
+             Araclar.model AS carModel,
+             CASE 
+               WHEN rezervasyonlari.rezervasyon_tarihi = ? THEN 'Kiralandi'
+               ELSE 'Mevcut'
+             END AS durum
+      FROM Araclar
+      LEFT JOIN rezervasyonlari 
+        ON Araclar.id = rezervasyonlari.id_araclar 
+        AND rezervasyonlari.rezervasyon_tarihi = ?
+      WHERE Araclar.id = ?
+    `;
+  
+    // Exécuter la requête avec les bons paramètres
+    db.query(query, [startDate, startDate, carId], (err, results) => {
       if (err) {
-        console.error('Erreur SQL:', err);
-        return res.status(500).json({ error: 'Erreur du serveur.' });
+        console.error("Erreur SQL :", err);
+        return res.status(500).json({ error: "Erreur interne du serveur." });
       }
-      console.log('Résultats SQL:', results); // Log des résultats pour déboguer
-      res.json(results); // Envoyer les résultats au frontend
+  
+      // S'assurer que le résultat est au bon format
+      if (results.length === 0) {
+        console.log("Aucune donnée trouvée pour la voiture :", carId);
+        return res.json([{ carId: carId, carModel: "Inconnu", durum: "Mevcut" }]);
+      }
+  
+      console.log("Résultats SQL :", results);
+      res.json(results);
     });
   });
-
   
-  // Endpoint pour les données des types de voitures
-  app.get('/api/car-type-data', (req, res) => {
-    const query = `
-        SELECT Araclar.model AS type, COUNT(*) AS count
-        FROM Araclar
-        GROUP BY Araclar.model;
-    `;
+  
+  
+  
 
-    db.query(query, (err, results) => {
-        if (err) {
-            console.error('Erreur lors de la récupération des données des types de voitures:', err);
-            return res.status(500).json({ error: 'Erreur du serveur.' });
-        }
-        res.json(results); // Renvoie les données directement au format JSON
-    });
-});
-
-  // Endpoint pour les données du statut des réservations
- // Endpoint pour les données du statut des réservations
-app.get('/api/booking-status', (req, res) => {
+// Endpoint pour les données des types de voitures
+app.get('/api/car-types', (req, res) => {
   const query = `
-    SELECT 
-  Araclar.durum AS durum,
-  COUNT(*) AS count
-FROM rezervasyonlari
-JOIN Araclar ON rezervasyonlari.id_araclar = Araclar.id
-GROUP BY Araclar.durum;
-
+      SELECT Araclar.model, COUNT(*) AS count
+      FROM Araclar
+      GROUP BY Araclar.model;
   `;
 
   db.query(query, (err, results) => {
-    if (err) {
-      console.error('Erreur lors de la récupération des données du statut des réservations:', err);
-      return res.status(500).json({ error: 'Erreur du serveur.' });
-    }
-    res.json(results);
+      if (err) {
+          console.error('Erreur lors de la récupération des données des types de voitures:', err);
+          return res.status(500).json({ error: 'Erreur du serveur.' });
+      }
+      res.json(results); // Renvoie les données directement au format JSON
   });
 });
-// Endpoint : Récupérer les statistiques du tableau de bord
-app.get('/api/stats', async (req, res) => {
-  try {
-      const [stats] = await pool.execute('SELECT * FROM istatistikleri');
-      res.json(stats);
-  } catch (error) {
-      res.status(500).json({ error: error.message });
-  }
-});
 
+// Endpoint pour les données du statut des réservations
+app.get('/api/booking-status', (req, res) => {
+  const query = `
+      SELECT 
+          Araclar.durum AS durum,
+          COUNT(*) AS count
+      FROM rezervasyonlari
+      JOIN Araclar ON rezervasyonlari.id_araclar = Araclar.id
+      GROUP BY Araclar.durum;
+  `;
+
+  db.query(query, (err, results) => {
+      if (err) {
+          console.error('Erreur lors de la récupération des données du statut des réservations:', err);
+          return res.status(500).json({ error: 'Erreur du serveur.' });
+      }
+      res.json(results); // Renvoie les données directement au format JSON
+  });
+});
 
 // Endpoint : Liste des véhicules
 //app.get('/api/araclar', async (req, res) => {
